@@ -268,9 +268,8 @@ build.bat
 
 **如有问题或建议，欢迎联系开发团队**
 
-📧 Email: support@example.com  
-🌐 Website: https://www.example.com  
-📱 Phone: 400-xxx-xxxx
+📧 Email: support@jinghong.me  
+🌐 Website: https://www.jinghong.me  
 
 ---
 
