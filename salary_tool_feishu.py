@@ -2080,11 +2080,11 @@ class SalaryTool:
                                 '开户行': emp.iloc[0].get('开户行', '')
                             })
                     else:
-                        errors.append(f"'{name}': 不在花名册中")
+                        errors.append(f"{name} 不在花名册中")
                 except ValueError:
-                    errors.append(f"'{line}': 工资金额格式错误")
+                    errors.append(f"{line} 工资金额格式错误")
             else:
-                errors.append(f"'{line}': 格式错误")
+                errors.append(f"{line} 格式错误")
 
         return data, errors
 
@@ -2180,40 +2180,46 @@ class SalaryTool:
         content_frame = ttk.Frame(preview_window)
         content_frame.pack(fill=BOTH, expand=YES, padx=20, pady=10)
 
-        # 有效数据表格
-        if validated_data:
-            data_frame = ttk.Labelframe(content_frame, text="数据明细（红色表示异常）", padding=10)
-            data_frame.pack(fill=BOTH, expand=YES, pady=(0, 10))
+        # 分离正常数据和异常数据
+        normal_data = [item for item in validated_data if not item['校验结果']['有问题']]
+        error_data = [item for item in validated_data if item['校验结果']['有问题']]
+
+        # 异常数据表格（优先显示，高度自适应）
+        if error_data:
+            error_data_frame = ttk.Labelframe(content_frame, text=f"⚠️ 数据异常 ({len(error_data)}人)", padding=10)
+            error_data_frame.pack(fill=BOTH, expand=YES, pady=(0, 10))
 
             # 创建带滚动条的表格
-            tree_frame = ttk.Frame(data_frame)
-            tree_frame.pack(fill=BOTH, expand=YES)
+            tree_frame_error = ttk.Frame(error_data_frame)
+            tree_frame_error.pack(fill=BOTH, expand=YES)
 
-            tree = ttk.Treeview(tree_frame, columns=('姓名', '工资', '身份证', '手机号', '银行卡', '开户行', '状态'), show='headings', height=12)
+            # 异常数据全部显示，不限制行数，使用滚动条查看
+            error_height = min(max(len(error_data), 3), 15)  # 显示区域高度固定15行，但所有数据都可通过滚动条查看
+            tree_error = ttk.Treeview(tree_frame_error, columns=('姓名', '工资', '身份证', '手机号', '银行卡', '开户行', '状态'), show='headings', height=error_height)
 
             # 设置列宽
-            tree.column('姓名', width=80, anchor='center')
-            tree.column('工资', width=100, anchor='center')
-            tree.column('身份证', width=150, anchor='center')
-            tree.column('手机号', width=120, anchor='center')
-            tree.column('银行卡', width=180, anchor='center')
-            tree.column('开户行', width=200, anchor='w')
-            tree.column('状态', width=100, anchor='center')
+            tree_error.column('姓名', width=80, anchor='center')
+            tree_error.column('工资', width=100, anchor='center')
+            tree_error.column('身份证', width=150, anchor='center')
+            tree_error.column('手机号', width=120, anchor='center')
+            tree_error.column('银行卡', width=180, anchor='center')
+            tree_error.column('开户行', width=200, anchor='w')
+            tree_error.column('状态', width=150, anchor='center')
 
             for col in ('姓名', '工资', '身份证', '手机号', '银行卡', '开户行', '状态'):
-                tree.heading(col, text=col)
+                tree_error.heading(col, text=col)
 
             # 添加滚动条
-            vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
-            tree.configure(yscrollcommand=vsb.set)
+            vsb_error = ttk.Scrollbar(tree_frame_error, orient="vertical", command=tree_error.yview)
+            tree_error.configure(yscrollcommand=vsb_error.set)
 
-            tree.grid(row=0, column=0, sticky='nsew')
-            vsb.grid(row=0, column=1, sticky='ns')
-            tree_frame.grid_rowconfigure(0, weight=1)
-            tree_frame.grid_columnconfigure(0, weight=1)
+            tree_error.grid(row=0, column=0, sticky='nsew')
+            vsb_error.grid(row=0, column=1, sticky='ns')
+            tree_frame_error.grid_rowconfigure(0, weight=1)
+            tree_frame_error.grid_columnconfigure(0, weight=1)
 
-            # 插入数据
-            for item in validated_data:
+            # 插入异常数据
+            for item in error_data:
                 validation = item['校验结果']
                 issues = validation['问题列表']
 
@@ -2237,17 +2243,11 @@ class SalaryTool:
                     bank_name_display = bank_name if bank_name else '❌ 缺失'
 
                 # 状态列
-                if issues:
-                    status = '⚠️ ' + '、'.join(issues[:2])
-                    if len(issues) > 2:
-                        status += '...'
-                else:
-                    status = '✅ 正常'
+                status = '⚠️ ' + '、'.join(issues[:2])
+                if len(issues) > 2:
+                    status += '...'
 
-                # 根据是否有问题设置标签
-                tag = 'error' if issues else 'normal'
-
-                tree.insert('', 'end', values=(
+                tree_error.insert('', 'end', values=(
                     item['姓名'],
                     f"{item['工资']:.2f}",
                     id_card_display,
@@ -2255,18 +2255,79 @@ class SalaryTool:
                     bank_card_display,
                     bank_name_display,
                     status
-                ), tags=(tag,))
+                ), tags=('error',))
 
             # 设置标签样式
-            tree.tag_configure('error', foreground='red')
-            tree.tag_configure('normal', foreground='green')
+            tree_error.tag_configure('error', foreground='red')
+
+        # 正常数据表格（高度固定较小）
+        if normal_data:
+            normal_data_frame = ttk.Labelframe(content_frame, text=f"✅ 数据正常 ({len(normal_data)}人)", padding=10)
+            normal_data_frame.pack(fill=X, pady=(0, 10))
+
+            # 创建带滚动条的表格
+            tree_frame_normal = ttk.Frame(normal_data_frame)
+            tree_frame_normal.pack(fill=BOTH, expand=YES)
+
+            # 正常数据表格高度固定为3行，节省空间
+            tree_normal = ttk.Treeview(tree_frame_normal, columns=('姓名', '工资', '身份证', '手机号', '银行卡', '开户行'), show='headings', height=3)
+
+            # 设置列宽
+            tree_normal.column('姓名', width=80, anchor='center')
+            tree_normal.column('工资', width=100, anchor='center')
+            tree_normal.column('身份证', width=150, anchor='center')
+            tree_normal.column('手机号', width=120, anchor='center')
+            tree_normal.column('银行卡', width=180, anchor='center')
+            tree_normal.column('开户行', width=200, anchor='w')
+
+            for col in ('姓名', '工资', '身份证', '手机号', '银行卡', '开户行'):
+                tree_normal.heading(col, text=col)
+
+            # 添加滚动条
+            vsb_normal = ttk.Scrollbar(tree_frame_normal, orient="vertical", command=tree_normal.yview)
+            tree_normal.configure(yscrollcommand=vsb_normal.set)
+
+            tree_normal.grid(row=0, column=0, sticky='nsew')
+            vsb_normal.grid(row=0, column=1, sticky='ns')
+            tree_frame_normal.grid_rowconfigure(0, weight=1)
+            tree_frame_normal.grid_columnconfigure(0, weight=1)
+
+            # 插入正常数据（只显示前20条，避免过多）
+            for item in normal_data[:20]:
+                # 格式化显示
+                id_card = item.get('身份证号码', '')
+                phone = item.get('手机号', '')
+                bank_card = item.get('银行卡号', '')
+
+                # 根据联行号获取银行名称
+                interbank = item.get('联行号', '')
+                bank_name_from_interbank = self.get_bank_name_from_interbank(interbank)
+                if bank_name_from_interbank:
+                    bank_name_display = bank_name_from_interbank
+                else:
+                    bank_name_display = item.get('开户行', '')
+
+                tree_normal.insert('', 'end', values=(
+                    item['姓名'],
+                    f"{item['工资']:.2f}",
+                    id_card,
+                    phone,
+                    bank_card,
+                    bank_name_display
+                ), tags=('normal',))
+
+            if len(normal_data) > 20:
+                tree_normal.insert('', 'end', values=(f'...还有 {len(normal_data)-20} 条正常数据', '', '', '', '', ''), tags=('normal',))
+
+            # 设置标签样式
+            tree_normal.tag_configure('normal', foreground='green')
 
         # 解析错误信息
         if errors:
-            error_frame = ttk.Labelframe(content_frame, text="解析错误", padding=10)
+            error_frame = ttk.Labelframe(content_frame, text=f"❌ 解析错误 ({len(errors)}条)", padding=10)
             error_frame.pack(fill=X, pady=(0, 10))
 
-            error_text = tk.Text(error_frame, height=4, font=('Microsoft YaHei', 10), fg='red')
+            error_text = tk.Text(error_frame, height=min(len(errors), 4), font=('Microsoft YaHei', 10), fg='red')
             error_text.pack(fill=BOTH, expand=YES)
 
             for err in errors[:10]:
@@ -2315,7 +2376,7 @@ class SalaryTool:
             messagebox.showwarning("提示", "没有有效数据")
             return
 
-        date_str = datetime.now().strftime("%Y%m%d")
+        date_str = datetime.now().strftime("%Y%m%d_%H%M")
 
         # 创建导出目录
         output_dir = os.path.join(os.getcwd(), "导出报表", f"{company_name}-{salary_period}-{date_str}")
@@ -3940,7 +4001,7 @@ CSV示例：
             self.backup_status.config(text=f"恢复失败: {e}")
 
     def copy_selected_bankcode(self):
-        """一键复制选中的联行号"""
+        """一键复制选中的联行号（不弹窗，只在状态栏提示）"""
         selected = self.bankcode_tree.selection()
         if not selected:
             messagebox.showwarning("提示", "请先选择一条记录")
@@ -3954,7 +4015,6 @@ CSV示例：
         self.root.clipboard_clear()
         self.root.clipboard_append(bankcode)
         self.bankcode_status.config(text=f"已复制联行号: {bankcode} ({bank_name})")
-        messagebox.showinfo("成功", f"联行号已复制到剪贴板:\n{bankcode}")
 
     def show_bankcode_context_menu(self, event):
         """显示右键菜单"""
@@ -4007,8 +4067,8 @@ CSV示例：
                 record.get('company', ''),
                 record.get('period', ''),
                 record.get('count', ''),
-                f"{record.get('total', 0):.2f}",
-                record.get('files', '')
+                f"{record.get('total_amount', 0):.2f}",
+                record.get('output_dir', '')
             ))
 
     def clear_history(self):
