@@ -2,7 +2,7 @@
 ; 使用 Inno Setup 6.x 编译
 
 #define MyAppName "工资报表生成工具"
-#define MyAppVersion "2.1"
+#define MyAppVersion "2.2"
 #define MyAppPublisher "惊鸿科技（济宁）有限公司"
 #define MyAppURL "https://www.jinghongtech.com"
 #define MyAppExeName "工资报表生成工具.exe"
@@ -64,10 +64,13 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
+; 数据文件
+Source: "net_bank_code.csv"; DestDir: "{app}"; Flags: ignoreversion
+
 ; 说明文档
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "requirements.txt"; DestDir: "{app}"; Flags: ignoreversion
-; 注意：员工花名册.xlsx 不打包，首次运行时自动创建
+; 注意：数据库文件 salary_tool.db 不打包，首次运行时自动创建
 
 [Icons]
 ; 开始菜单快捷方式

@@ -23,7 +23,7 @@ def check_python():
 def install_dependencies():
     """安装依赖"""
     print("\n[2/5] 检查并安装依赖...")
-    deps = ['pyinstaller', 'pandas', 'openpyxl', 'ttkbootstrap']
+    deps = ['pyinstaller', 'pandas', 'openpyxl', 'ttkbootstrap', 'pillow']
     for dep in deps:
         print(f"  安装 {dep}...")
         subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', dep])
@@ -52,6 +52,7 @@ def build_exe():
         '--name', '工资报表生成工具',
         '--icon', 'icon.ico',
         '--add-data', 'icon.ico;.',
+        '--add-data', 'net_bank_code.csv;.',
         '--clean',
         'salary_tool_feishu.py'
     ]
@@ -124,7 +125,7 @@ def build_installer():
 def main():
     """主函数"""
     print("=" * 50)
-    print("   工资报表生成工具 v2.1 - 打包脚本")
+    print("   工资报表生成工具 v2.2 - 打包脚本")
     print("=" * 50)
     print()
     
@@ -150,8 +151,8 @@ def main():
     print("输出文件：")
     if os.path.exists(r'dist\工资报表生成工具.exe'):
         print("  - EXE 程序：dist\\工资报表生成工具.exe")
-    if os.path.exists(r'installer\工资报表生成工具_v2.1_安装包.exe'):
-        print("  - 安装包：installer\\工资报表生成工具_v2.1_安装包.exe")
+    if os.path.exists(r'installer\工资报表生成工具_v2.2_安装包.exe'):
+        print("  - 安装包：installer\\工资报表生成工具_v2.2_安装包.exe")
     print()
     print("安装包功能：")
     print("  - 自动创建桌面快捷方式")
