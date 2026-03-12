@@ -2289,7 +2289,9 @@ class SalaryTool:
             df = df[mask]
 
         for idx, row in df.iterrows():
-            self.tree.insert('', 'end', iid=str(idx), values=(
+            # 使用数据库id作为iid，确保编辑时能正确定位
+            employee_id = str(row.get('id', idx))
+            self.tree.insert('', 'end', iid=employee_id, values=(
                 row.get('姓名', ''),
                 row.get('身份证号码', ''),
                 row.get('手机号', ''),
@@ -2313,12 +2315,14 @@ class SalaryTool:
             messagebox.showwarning("提示", "请选择要编辑的员工")
             return
 
-        # 使用iid获取原始DataFrame索引
+        # 使用iid获取员工id（数据库主键）
         iid = selected[0]
         try:
-            idx = int(iid)
-            if idx in self.roster_df.index:
-                EmployeeDialog(self.root, self, "编辑员工", self.roster_df.loc[idx])
+            employee_id = int(iid)
+            # 通过id查找员工
+            emp = self.roster_df[self.roster_df['id'] == employee_id]
+            if len(emp) > 0:
+                EmployeeDialog(self.root, self, "编辑员工", emp.iloc[0])
                 return
         except (ValueError, IndexError):
             pass
@@ -3961,13 +3965,18 @@ class EmployeeDialog:
 
         if self.is_edit:
             # 更新现有员工
-            employee_id = self.employee.get('id')
+            employee_id = int(self.employee.get('id')) if self.employee.get('id') else None
+            if not employee_id:
+                messagebox.showerror("错误", "无法获取员工ID，请重试", parent=self.dialog)
+                return
             success, error = self.main_app.db.update_employee(
                 employee_id, name, id_card, phone, bank_card, interbank, bank_name
             )
             if success:
                 self.main_app.load_roster()
-                self.main_app.refresh_roster_list()
+                # 使用当前搜索关键词刷新列表
+                keyword = self.main_app.search_var.get().strip()
+                self.main_app.refresh_roster_list(keyword)
                 messagebox.showinfo("成功", f"员工 '{name}' 已更新", parent=self.dialog)
                 self.dialog.destroy()
             else:
@@ -3979,7 +3988,9 @@ class EmployeeDialog:
             )
             if success:
                 self.main_app.load_roster()
-                self.main_app.refresh_roster_list()
+                # 使用当前搜索关键词刷新列表
+                keyword = self.main_app.search_var.get().strip()
+                self.main_app.refresh_roster_list(keyword)
                 messagebox.showinfo("成功", f"员工 '{name}' 已添加", parent=self.dialog)
                 self.dialog.destroy()
             else:
