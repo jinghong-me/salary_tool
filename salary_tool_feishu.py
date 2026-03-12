@@ -732,47 +732,146 @@ class DatabaseManager:
 class Validator:
     """数据校验类"""
 
-    # 银行BIN号数据库
+    # 银行BIN号数据库 - 按银行分类整理，优先匹配6位BIN
     BANK_BINS = {
-        '102100': '中国工商银行', '103100': '中国农业银行',
-        '104100': '中国银行', '105100': '中国建设银行',
-        '301100': '交通银行', '302100': '中信银行',
-        '303100': '中国光大银行', '304100': '华夏银行',
-        '305100': '中国民生银行', '306100': '广发银行',
-        '308100': '招商银行', '309100': '兴业银行',
-        '310100': '上海浦东发展银行', '403100': '中国邮政储蓄银行',
-        '621483': '招商银行', '621485': '招商银行',
-        '621486': '招商银行', '622202': '中国工商银行',
+        # 中国工商银行
+        '102100': '中国工商银行', '622202': '中国工商银行',
         '622203': '中国工商银行', '622208': '中国工商银行',
-        '622848': '中国农业银行', '622845': '中国农业银行',
-        '621700': '中国建设银行', '621288': '中国工商银行',
-        '623668': '中国建设银行', '621661': '中国银行',
-        '622260': '交通银行', '622262': '交通银行',
-        '621098': '中国邮政储蓄银行', '622150': '中国邮政储蓄银行',
-        '621799': '中国邮政储蓄银行', '622200': '中国工商银行',
-        '621226': '中国工商银行', '621558': '中国工商银行',
-        '621559': '中国工商银行', '621723': '中国工商银行',
-        '621618': '中国工商银行', '622841': '中国农业银行',
-        '623052': '中国农业银行', '621725': '中国银行',
-        '621756': '中国银行', '621785': '中国银行',
-        '621786': '中国银行', '621787': '中国银行',
-        '621788': '中国银行', '621789': '中国银行',
-        '621790': '中国银行', '622760': '中国银行',
-        '621669': '中国建设银行', '621673': '中国建设银行',
-        '623094': '中国建设银行', '623211': '中国建设银行',
-        '621284': '中国建设银行', '436742': '中国建设银行',
-        '621081': '中国建设银行', '621466': '中国建设银行',
-        '621467': '中国建设银行', '621488': '中国建设银行',
-        '621499': '中国建设银行', '621598': '中国建设银行',
-        '621621': '中国建设银行', '622280': '中国建设银行',
-        '622700': '中国建设银行', '622707': '中国建设银行',
-        '622966': '中国建设银行', '622988': '中国建设银行',
+        '622200': '中国工商银行', '621226': '中国工商银行',
+        '621558': '中国工商银行', '621559': '中国工商银行',
+        '621723': '中国工商银行', '621618': '中国工商银行',
+        '621288': '中国工商银行', '621472': '中国工商银行',
+        '621476': '中国工商银行', '621222': '中国工商银行',
+        '621223': '中国工商银行', '621225': '中国工商银行',
+        '620058': '中国工商银行', '621281': '中国工商银行',
+        '621670': '中国工商银行', '621720': '中国工商银行',
+        '621762': '中国工商银行', '621414': '中国工商银行',
+        '621303': '中国工商银行', '623062': '中国工商银行',
+
+        # 中国农业银行
+        '103100': '中国农业银行', '622848': '中国农业银行',
+        '622845': '中国农业银行', '622841': '中国农业银行',
+        '623052': '中国农业银行', '621336': '中国农业银行',
+        '621671': '中国农业银行', '622843': '中国农业银行',
+        '622846': '中国农业银行', '622847': '中国农业银行',
+        '621282': '中国农业银行', '621283': '中国农业银行',
+        '622821': '中国农业银行', '622822': '中国农业银行',
+        '622823': '中国农业银行', '622824': '中国农业银行',
+        '622825': '中国农业银行', '622826': '中国农业银行',
+        '622827': '中国农业银行', '622828': '中国农业银行',
+        '622840': '中国农业银行', '622844': '中国农业银行',
+        '621671': '中国农业银行', '623206': '中国农业银行',
+
+        # 中国银行
+        '104100': '中国银行', '621661': '中国银行',
+        '621725': '中国银行', '621756': '中国银行',
+        '621785': '中国银行', '621786': '中国银行',
+        '621787': '中国银行', '621788': '中国银行',
+        '621789': '中国银行', '621790': '中国银行',
+        '622760': '中国银行', '621568': '中国银行',
+        '621665': '中国银行', '621666': '中国银行',
+        '621668': '中国银行', '621669': '中国银行',
+        '623208': '中国银行', '621293': '中国银行',
+        '621294': '中国�国银行', '621342': '中国银行',
+        '621343': '中国银行', '621364': '中国银行',
+        '621394': '中国银行', '621395': '中国银行',
+
+        # 中国建设银行
+        '105100': '中国建设银行', '621700': '中国建设银行',
+        '623668': '中国建设银行', '621669': '中国建设银行',
+        '621673': '中国建设银行', '623094': '中国建设银行',
+        '623211': '中国建设银行', '621284': '中国建设银行',
+        '436742': '中国建设银行', '621081': '中国建设银行',
+        '621466': '中国建设银行', '621467': '中国建设银行',
+        '621488': '中国建设银行', '621499': '中国建设银行',
+        '621598': '中国建设银行', '621621': '中国建设银行',
+        '622280': '中国建设银行', '622700': '中国建设银行',
+        '622707': '中国建设银行', '622966': '中国建设银行',
+        '622988': '中国建设银行', '621082': '中国建设银行',
+        '621673': '中国建设银行', '623668': '中国建设银行',
+
+        # 中国邮政储蓄银行 - 添加更多BIN码
+        '403100': '中国邮政储蓄银行', '621098': '中国邮政储蓄银行',
+        '622150': '中国邮政储蓄银行', '621799': '中国邮政储蓄银行',
+        '621797': '中国邮政储蓄银行', '621795': '中国邮政储蓄银行',
+        '622199': '中国邮政储蓄银行', '622188': '中国邮政储蓄银行',
+        '622181': '中国邮政储蓄银行', '622182': '中国邮政储蓄银行',
+        '622187': '中国邮政储蓄银行', '623218': '中国邮政储蓄银行',
+        '623219': '中国邮政储蓄银行', '621096': '中国邮政储蓄银行',
+        '621622': '中国邮政储蓄银行', '623698': '中国邮政储蓄银行',
+        '623699': '中国邮政储蓄银行', '621285': '中国邮政储蓄银行',
+        '622810': '中国邮政储蓄银行', '622811': '中国邮政储蓄银行',
+        '621674': '中国邮政储蓄银行', '621673': '中国邮政储蓄银行',
+        '620062': '中国邮政储蓄银行', '621580': '中国邮政储蓄银行',
+        '622812': '中国邮政储蓄银行', '623698': '中国邮政储蓄银行',
+
+        # 交通银行
+        '301100': '交通银行', '622260': '交通银行',
+        '622262': '交通银行', '621436': '交通银行',
+        '622258': '交通银行', '622284': '交通银行',
+
+        # 招商银行
+        '308100': '招商银行', '621483': '招商银行',
+        '621485': '招商银行', '621486': '招商银行',
         '402658': '招商银行', '410062': '招商银行',
         '468203': '招商银行', '512425': '招商银行',
         '524011': '招商银行', '622588': '招商银行',
         '622609': '招商银行', '623126': '招商银行',
-        '623136': '招商银行', '621020': '莱商银行',
-        '621379': '莱商银行', '623531': '莱商银行',
+        '623136': '招商银行', '621483': '招商银行',
+        '622580': '招商银行', '622588': '招商银行',
+        '622609': '招商银行', '622598': '招商银行',
+
+        # 中信银行
+        '302100': '中信银行', '622698': '中信银行',
+        '622999': '中信银行', '433670': '中信银行',
+        '433671': '中信银行', '433680': '中信银行',
+        '433681': '中信银行', '622690': '中信银行',
+        '622691': '中信银行', '622998': '中信银行',
+
+        # 中国光大银行
+        '303100': '中国光大银行', '622663': '中国光大银行',
+        '622664': '中国光大银行', '622665': '中国光大银行',
+        '622666': '中国光大银行', '622667': '中国光大银行',
+        '622668': '中国光大银行', '622669': '中国光大银行',
+        '622670': '中国光大银行', '900301': '中国光大银行',
+
+        # 华夏银行
+        '304100': '华夏银行', '622630': '华夏银行',
+        '622631': '华夏银行', '622632': '华夏银行',
+        '622633': '华夏银行', '999999': '华夏银行',
+
+        # 中国民生银行
+        '305100': '中国民生银行', '622622': '中国民生银行',
+        '622600': '中国民生银行', '622601': '中国民生银行',
+        '622602': '中国民生银行', '622603': '中国民生银行',
+        '421869': '中国民生银行', '421870': '中国民生银行',
+        '421871': '中国民生银行',
+
+        # 广发银行
+        '306100': '广发银行', '622568': '广发银行',
+        '911121': '广发银行', '622558': '广发银行',
+        '622559': '广发银行', '622560': '广发银行',
+
+        # 兴业银行
+        '309100': '兴业银行', '622909': '兴业银行',
+        '622908': '兴业银行', '966666': '兴业银行',
+        '622902': '兴业银行',
+
+        # 上海浦东发展银行
+        '310100': '上海浦东发展银行', '622521': '上海浦东发展银行',
+        '622518': '上海浦东发展银行', '622522': '上海浦东发展银行',
+        '84301': '上海浦东发展银行', '84361': '上海浦东发展银行',
+        '84390': '上海浦东发展银行',
+
+        # 平安银行
+        '307100': '平安银行', '622298': '平安银行',
+        '622538': '平安银行', '998800': '平安银行',
+        '412962': '平安银行', '622986': '平安银行',
+        '622989': '平安银行',
+
+        # 莱商银行
+        '621020': '莱商银行', '621379': '莱商银行',
+        '623531': '莱商银行',
     }
 
     @staticmethod
@@ -874,7 +973,8 @@ class Validator:
 
     @staticmethod
     def identify_bank(card_no):
-        """识别发卡银行"""
+        """识别发卡银行 - 优先匹配6位BIN，然后5位、4位、3位"""
+        # 尝试6位BIN匹配（最精确）
         bin6 = card_no[:6]
         if bin6 in Validator.BANK_BINS:
             return {
@@ -883,6 +983,27 @@ class Validator:
                 'card_type': '借记卡'
             }
 
+        # 尝试5位BIN匹配
+        bin5 = card_no[:5]
+        for bin_code, bank_name in Validator.BANK_BINS.items():
+            if bin_code.startswith(bin5) and len(bin_code) >= 5:
+                return {
+                    'bank_name': bank_name,
+                    'bin': bin_code,
+                    'card_type': '借记卡'
+                }
+
+        # 尝试4位BIN匹配
+        bin4 = card_no[:4]
+        for bin_code, bank_name in Validator.BANK_BINS.items():
+            if bin_code.startswith(bin4) and len(bin_code) >= 4:
+                return {
+                    'bank_name': bank_name,
+                    'bin': bin_code,
+                    'card_type': '借记卡'
+                }
+
+        # 最后尝试3位BIN匹配（最不精确）
         bin3 = card_no[:3]
         for bin_code, bank_name in Validator.BANK_BINS.items():
             if bin_code.startswith(bin3):
@@ -1391,13 +1512,20 @@ class SalaryTool:
             bootstyle="success-outline"
         ).pack(side=LEFT, padx=5)
 
+        ttk.Button(
+            btn_frame,
+            text="🗑️ 批量删除",
+            command=self.batch_delete_employees,
+            bootstyle="danger-outline"
+        ).pack(side=LEFT, padx=5)
+
         # 员工列表
         list_frame = ttk.Frame(self.frame_roster)
         list_frame.pack(fill=BOTH, expand=YES)
 
         # Treeview
         columns = ('姓名', '身份证号码', '手机号', '银行卡号', '联行号', '开户行')
-        self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=25, bootstyle="primary")
+        self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=25, bootstyle="primary", selectmode='extended')
 
         # 设置列宽和标题 - 增加宽度以适应更大的字体，使用 stretch 让列宽自适应
         col_widths = {'姓名': 120, '身份证号码': 240, '手机号': 160, '银行卡号': 260, '联行号': 160, '开户行': 400}
@@ -1557,19 +1685,24 @@ class SalaryTool:
         else:
             results.append("🟢 未发现身份证重复\n")
 
-        # 3. 银行卡校验
+        # 3. 银行卡校验（根据联行号识别银行）
         results.append("\n## 💳 三、银行卡号校验\n")
         bank_card_issues = []
         bank_card_ok = []
         for idx, row in self.roster_df.iterrows():
             name = row.get('姓名', '')
             bank_card = row.get('银行卡号', '')
+            interbank = row.get('联行号', '')
             if bank_card:
                 is_valid, error_msg, bank_info = Validator.validate_bank_card(bank_card)
                 if not is_valid:
                     bank_card_issues.append({'name': name, 'bank_card': bank_card, 'error': error_msg})
                     total_warnings += 1
                 else:
+                    # 根据联行号识别银行名称
+                    bank_name_from_interbank = self.get_bank_name_from_interbank(interbank)
+                    if bank_name_from_interbank:
+                        bank_info = {'bank_name': bank_name_from_interbank, 'bin': bank_card[:6], 'card_type': '借记卡'}
                     bank_card_ok.append({'name': name, 'bank_card': bank_card, 'bank_info': bank_info})
 
         if bank_card_issues:
@@ -1955,8 +2088,56 @@ class SalaryTool:
 
         return data, errors
 
+    def validate_employee_data(self, item):
+        """校验员工数据，返回详细校验结果"""
+        issues = []
+
+        # 校验身份证
+        id_card = item.get('身份证号码', '')
+        if not id_card:
+            issues.append('身份证缺失')
+        elif len(id_card) != 18:
+            issues.append('身份证长度错误')
+        else:
+            is_valid, error_msg, _ = Validator.validate_id_card(id_card)
+            if not is_valid:
+                issues.append('身份证格式错误')
+
+        # 校验手机号
+        phone = item.get('手机号', '')
+        if not phone:
+            issues.append('手机号缺失')
+        elif not re.match(r'^1[3-9]\d{9}$', str(phone)):
+            issues.append('手机号格式错误')
+
+        # 校验银行卡号
+        bank_card = item.get('银行卡号', '')
+        if not bank_card:
+            issues.append('银行卡缺失')
+        else:
+            is_valid, error_msg, _ = Validator.validate_bank_card(bank_card)
+            if not is_valid:
+                issues.append('银行卡格式错误')
+
+        # 校验开户行
+        bank_name = item.get('开户行', '')
+        if not bank_name:
+            issues.append('开户行缺失')
+
+        # 校验联行号（如果有）
+        interbank = item.get('联行号', '')
+        if interbank:
+            if len(str(interbank)) != 12:
+                issues.append('联行号长度错误')
+
+        return {
+            '有问题': len(issues) > 0,
+            '问题列表': issues,
+            '问题详情': '；'.join(issues) if issues else '数据完整'
+        }
+
     def preview_data(self):
-        """预览数据"""
+        """预览数据 - 带详细校验信息"""
         input_text = self.salary_input.get("1.0", 'end').strip()
         lines = [line.strip() for line in input_text.split('\n')
                 if line.strip() and not line.strip().startswith('#')]
@@ -1967,10 +2148,17 @@ class SalaryTool:
 
         data, errors = self.parse_salary_data(lines)
 
+        # 对每条数据进行详细校验
+        validated_data = []
+        for item in data:
+            validation = self.validate_employee_data(item)
+            item['校验结果'] = validation
+            validated_data.append(item)
+
         # 创建预览窗口
         preview_window = tk.Toplevel(self.root)
         preview_window.title("数据预览")
-        preview_window.geometry("900x600")
+        preview_window.geometry("1000x700")
 
         # 标题
         ttk.Label(preview_window, text="📊 数据预览", font=('Microsoft YaHei', 16, 'bold')).pack(pady=15)
@@ -1979,45 +2167,112 @@ class SalaryTool:
         stats_frame = ttk.Labelframe(preview_window, text="统计信息", padding=10)
         stats_frame.pack(fill=X, padx=20, pady=5)
 
-        ttk.Label(stats_frame, text=f"✅ 有效数据: {len(data)} 人    ❌ 错误: {len(errors)} 条",
-                 font=('Microsoft YaHei', 12)).pack()
+        # 计算有问题的数据数量
+        issue_count = sum(1 for item in validated_data if item['校验结果']['有问题'])
+
+        stats_text = f"✅ 有效数据: {len(data)} 人    ❌ 解析错误: {len(errors)} 条"
+        if issue_count > 0:
+            stats_text += f"    ⚠️ 数据异常: {issue_count} 人"
+
+        ttk.Label(stats_frame, text=stats_text, font=('Microsoft YaHei', 12)).pack()
 
         # 内容区域
         content_frame = ttk.Frame(preview_window)
         content_frame.pack(fill=BOTH, expand=YES, padx=20, pady=10)
 
-        # 有效数据
-        if data:
-            data_frame = ttk.Labelframe(content_frame, text="有效数据", padding=10)
+        # 有效数据表格
+        if validated_data:
+            data_frame = ttk.Labelframe(content_frame, text="数据明细（红色表示异常）", padding=10)
             data_frame.pack(fill=BOTH, expand=YES, pady=(0, 10))
 
-            tree = ttk.Treeview(data_frame, columns=('姓名', '工资', '银行卡号', '开户行'), show='headings', height=10)
-            for col in ('姓名', '工资', '银行卡号', '开户行'):
-                tree.heading(col, text=col)
-                tree.column(col, width=150)
+            # 创建带滚动条的表格
+            tree_frame = ttk.Frame(data_frame)
+            tree_frame.pack(fill=BOTH, expand=YES)
 
-            for item in data:
+            tree = ttk.Treeview(tree_frame, columns=('姓名', '工资', '身份证', '手机号', '银行卡', '开户行', '状态'), show='headings', height=12)
+
+            # 设置列宽
+            tree.column('姓名', width=80, anchor='center')
+            tree.column('工资', width=100, anchor='center')
+            tree.column('身份证', width=150, anchor='center')
+            tree.column('手机号', width=120, anchor='center')
+            tree.column('银行卡', width=180, anchor='center')
+            tree.column('开户行', width=200, anchor='w')
+            tree.column('状态', width=100, anchor='center')
+
+            for col in ('姓名', '工资', '身份证', '手机号', '银行卡', '开户行', '状态'):
+                tree.heading(col, text=col)
+
+            # 添加滚动条
+            vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
+            tree.configure(yscrollcommand=vsb.set)
+
+            tree.grid(row=0, column=0, sticky='nsew')
+            vsb.grid(row=0, column=1, sticky='ns')
+            tree_frame.grid_rowconfigure(0, weight=1)
+            tree_frame.grid_columnconfigure(0, weight=1)
+
+            # 插入数据
+            for item in validated_data:
+                validation = item['校验结果']
+                issues = validation['问题列表']
+
+                # 格式化显示
+                id_card = item.get('身份证号码', '')
+                id_card_display = id_card if id_card else '❌ 缺失'
+
+                phone = item.get('手机号', '')
+                phone_display = phone if phone else '❌ 缺失'
+
+                bank_card = item.get('银行卡号', '')
+                bank_card_display = bank_card if bank_card else '❌ 缺失'
+
+                # 根据联行号获取银行名称
+                interbank = item.get('联行号', '')
+                bank_name_from_interbank = self.get_bank_name_from_interbank(interbank)
+                if bank_name_from_interbank:
+                    bank_name_display = bank_name_from_interbank
+                else:
+                    bank_name = item.get('开户行', '')
+                    bank_name_display = bank_name if bank_name else '❌ 缺失'
+
+                # 状态列
+                if issues:
+                    status = '⚠️ ' + '、'.join(issues[:2])
+                    if len(issues) > 2:
+                        status += '...'
+                else:
+                    status = '✅ 正常'
+
+                # 根据是否有问题设置标签
+                tag = 'error' if issues else 'normal'
+
                 tree.insert('', 'end', values=(
                     item['姓名'],
                     f"{item['工资']:.2f}",
-                    item.get('银行卡号', '未找到'),
-                    item.get('开户行', '未找到')
-                ))
+                    id_card_display,
+                    phone_display,
+                    bank_card_display,
+                    bank_name_display,
+                    status
+                ), tags=(tag,))
 
-            tree.pack(fill=BOTH, expand=YES)
+            # 设置标签样式
+            tree.tag_configure('error', foreground='red')
+            tree.tag_configure('normal', foreground='green')
 
-        # 错误信息
+        # 解析错误信息
         if errors:
-            error_frame = ttk.Labelframe(content_frame, text="错误信息", padding=10)
-            error_frame.pack(fill=X)
+            error_frame = ttk.Labelframe(content_frame, text="解析错误", padding=10)
+            error_frame.pack(fill=X, pady=(0, 10))
 
-            error_text = tk.Text(error_frame, height=5, font=('Microsoft YaHei', 10))
+            error_text = tk.Text(error_frame, height=4, font=('Microsoft YaHei', 10), fg='red')
             error_text.pack(fill=BOTH, expand=YES)
 
-            for err in errors[:20]:
+            for err in errors[:10]:
                 error_text.insert('end', f"• {err}\n")
-            if len(errors) > 20:
-                error_text.insert('end', f"...还有 {len(errors)-20} 条错误\n")
+            if len(errors) > 10:
+                error_text.insert('end', f"...还有 {len(errors)-10} 条错误\n")
 
             error_text.config(state='disabled')
 
@@ -2381,6 +2636,51 @@ class SalaryTool:
             pass
 
         messagebox.showerror("错误", "无法删除员工，请重试")
+
+    def batch_delete_employees(self):
+        """批量删除员工"""
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("提示", "请先选择要删除的员工（按住Ctrl或Shift可多选）")
+            return
+
+        count = len(selected)
+        if not messagebox.askyesno("确认删除", f"确定要删除选中的 {count} 名员工吗？\n\n删除后可在删除记录中恢复"):
+            return
+
+        success_count = 0
+        failed_count = 0
+        failed_names = []
+
+        for item_id in selected:
+            try:
+                employee_id = int(item_id)
+                employee = self.db.find_employee_by_id(employee_id)
+                if employee:
+                    name = employee['姓名']
+                    # 先记录删除信息
+                    self.db.record_deleted_employee(employee, '批量删除')
+                    # 再删除员工
+                    if self.db.delete_employee(employee_id):
+                        success_count += 1
+                    else:
+                        failed_count += 1
+                        failed_names.append(name)
+                else:
+                    failed_count += 1
+            except (ValueError, IndexError, KeyError) as e:
+                failed_count += 1
+
+        # 刷新列表
+        self.load_roster()
+        keyword = self.search_var.get().strip()
+        self.refresh_roster_list(keyword)
+
+        # 显示结果
+        if failed_count == 0:
+            messagebox.showinfo("成功", f"已成功删除 {success_count} 名员工\n\n可在删除记录中恢复")
+        else:
+            messagebox.showwarning("部分失败", f"成功删除 {success_count} 名，失败 {failed_count} 名\n\n失败名单：{', '.join(failed_names[:5])}{'...' if len(failed_names) > 5 else ''}")
 
     def smart_paste_employee(self):
         """智能粘贴员工信息（使用数据库）"""
@@ -3188,6 +3488,20 @@ CSV示例：
         # 加载联行号数据
         self.load_bankcode_data()
 
+    def get_bank_name_from_interbank(self, interbank_code):
+        """根据联行号获取银行名称"""
+        if not interbank_code or self.bankcode_df is None:
+            return None
+
+        try:
+            # 查找联行号对应的银行
+            result = self.bankcode_df[self.bankcode_df['联行号'] == str(interbank_code)]
+            if len(result) > 0:
+                return result.iloc[0].get('银行名称', '')
+        except Exception:
+            pass
+        return None
+
     def load_bankcode_data(self):
         """加载联行号数据"""
         self.bankcode_df = None
@@ -3894,13 +4208,13 @@ class EmployeeDialog:
         form_frame = ttk.Frame(self.dialog, padding=25)
         form_frame.pack(fill=BOTH, expand=YES)
 
-        # 表单字段
+        # 表单字段 - 所有字段必填
         fields = [
             ('姓名 *', 'name', '请输入员工姓名'),
-            ('身份证号码', 'id_card', '18位身份证号'),
-            ('手机号', 'phone', '11位手机号码'),
-            ('银行卡号 *', 'bank_card', '工资卡号'),
-            ('联行号', 'interbank', '12位联行号'),
+            ('身份证 *', 'id_card', '18位身份证号'),
+            ('手机号 *', 'phone', '11位手机号码'),
+            ('银行卡 *', 'bank_card', '工资卡号'),
+            ('联行号 *', 'interbank', '12位联行号'),
             ('开户行 *', 'bank_name', '完整的开户行名称')
         ]
 
@@ -3943,24 +4257,52 @@ class EmployeeDialog:
                 self.vars[var_name].set(value)
 
     def save(self):
-        """保存员工信息（使用数据库）"""
+        """保存员工信息（使用数据库）- 所有字段必填"""
         name = self.vars['name'].get().strip()
-
-        if not name:
-            messagebox.showwarning("提示", "姓名不能为空", parent=self.dialog)
-            return
-
         id_card = self.vars['id_card'].get().strip()
         phone = self.vars['phone'].get().strip()
         bank_card = self.vars['bank_card'].get().strip()
         interbank = self.vars['interbank'].get().strip()
         bank_name = self.vars['bank_name'].get().strip()
 
+        # 校验所有必填字段
+        if not name:
+            messagebox.showwarning("提示", "姓名不能为空", parent=self.dialog)
+            return
+
+        if not id_card:
+            messagebox.showwarning("提示", "身份证号码不能为空", parent=self.dialog)
+            return
+
+        if not phone:
+            messagebox.showwarning("提示", "手机号不能为空", parent=self.dialog)
+            return
+
         if not bank_card:
             messagebox.showwarning("提示", "银行卡号不能为空", parent=self.dialog)
             return
+
+        if not interbank:
+            messagebox.showwarning("提示", "联行号不能为空", parent=self.dialog)
+            return
+
         if not bank_name:
             messagebox.showwarning("提示", "开户行不能为空", parent=self.dialog)
+            return
+
+        # 校验身份证格式
+        if len(id_card) != 18:
+            messagebox.showwarning("提示", "身份证号码必须为18位", parent=self.dialog)
+            return
+
+        # 校验手机号格式
+        if not re.match(r'^1[3-9]\d{9}$', phone):
+            messagebox.showwarning("提示", "手机号格式不正确", parent=self.dialog)
+            return
+
+        # 校验联行号格式
+        if len(interbank) != 12:
+            messagebox.showwarning("提示", "联行号必须为12位", parent=self.dialog)
             return
 
         if self.is_edit:
