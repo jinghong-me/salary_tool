@@ -576,6 +576,16 @@ class DatabaseManager:
             'output_dir': row['output_dir']
         } for row in rows]
 
+    def delete_history_by_time(self, time_str):
+        """根据时间戳删除单条历史记录"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM history WHERE time = ?', (time_str,))
+        conn.commit()
+        deleted = cursor.rowcount > 0
+        conn.close()
+        return deleted
+
     def clear_history(self):
         """清空历史记录"""
         conn = self.get_connection()
@@ -1827,13 +1837,13 @@ class SalaryTool:
         list_frame = ttk.Frame(self.frame_history)
         list_frame.pack(fill=BOTH, expand=YES)
 
-        columns = ('时间', '公司名称', '发薪月份', '人数', '总金额', '文件')
+        columns = ('时间', '公司名称', '发薪月份', '人数', '总金额')
         self.history_tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=25, bootstyle="primary")
 
-        col_widths = {'时间': 180, '公司名称': 280, '发薪月份': 120, '人数': 100, '总金额': 140, '文件': 350}
+        col_widths = {'时间': 180, '公司名称': 280, '发薪月份': 120, '人数': 100, '总金额': 140}
         for col in columns:
             self.history_tree.heading(col, text=col)
-            self.history_tree.column(col, width=col_widths.get(col, 100))
+            self.history_tree.column(col, width=col_widths.get(col, 100), anchor='center')
 
         vsb = ttk.Scrollbar(list_frame, orient="vertical", command=self.history_tree.yview)
         self.history_tree.configure(yscrollcommand=vsb.set)
@@ -1843,6 +1853,12 @@ class SalaryTool:
 
         list_frame.grid_rowconfigure(0, weight=1)
         list_frame.grid_columnconfigure(0, weight=1)
+
+        # 设置多选模式
+        self.history_tree.configure(selectmode='extended')
+
+        # 绑定右键菜单
+        self.history_tree.bind('<Button-3>', self.show_history_context_menu)
 
         # 刷新历史
         self.refresh_history_list()
@@ -2036,9 +2052,20 @@ class SalaryTool:
             self.update_input_stats()
 
     def parse_salary_data(self, lines):
-        """解析工资数据"""
+        """解析工资数据 - 处理花名册重名和输入框重复情况"""
         data = []
         errors = []
+
+        # 统计输入框中每个姓名出现的次数
+        input_name_count = {}
+        for line in lines:
+            parts = re.split(r'\s+', line.strip())
+            if len(parts) >= 2:
+                name = parts[0]
+                input_name_count[name] = input_name_count.get(name, 0) + 1
+
+        # 记录已经处理过的姓名次数（用于输入框重复时逐个确认）
+        processed_count = {}
 
         for line in lines:
             parts = re.split(r'\s+', line.strip())
@@ -2052,12 +2079,61 @@ class SalaryTool:
 
                     emp = self.roster_df[self.roster_df['姓名'] == name]
                     if len(emp) > 0:
-                        if len(emp) > 1:
-                            # 处理重名情况
+                        # 获取输入框和花名册的重复情况
+                        input_duplicate = input_name_count[name] > 1
+                        roster_duplicate = len(emp) > 1
+
+                        if not input_duplicate and not roster_duplicate:
+                            # 场景1：输入框唯一，花名册唯一 → 直接通过
+                            data.append({
+                                '姓名': name,
+                                '工资': salary,
+                                '身份证号码': emp.iloc[0].get('身份证号码', ''),
+                                '手机号': emp.iloc[0].get('手机号', ''),
+                                '银行卡号': emp.iloc[0].get('银行卡号', ''),
+                                '联行号': emp.iloc[0].get('联行号', ''),
+                                '开户行': emp.iloc[0].get('开户行', '')
+                            })
+                        elif input_duplicate and not roster_duplicate:
+                            # 场景2：输入框重复，花名册唯一 → 提示用户删除一条或确认是否为不同的人
+                            processed_count[name] = processed_count.get(name, 0) + 1
+                            if processed_count[name] == 1:
+                                # 第1次出现，直接匹配
+                                data.append({
+                                    '姓名': name,
+                                    '工资': salary,
+                                    '身份证号码': emp.iloc[0].get('身份证号码', ''),
+                                    '手机号': emp.iloc[0].get('手机号', ''),
+                                    '银行卡号': emp.iloc[0].get('银行卡号', ''),
+                                    '联行号': emp.iloc[0].get('联行号', ''),
+                                    '开户行': emp.iloc[0].get('开户行', '')
+                                })
+                            else:
+                                # 第2次及以后出现，提示用户
+                                msg = (f"员工 '{name}' 在输入框中出现第{processed_count[name]}次，\n"
+                                       f"但花名册中只有1个 '{name}'。\n\n"
+                                       f"请选择操作：\n"
+                                       f"• 是：继续发放给同一个人（{emp.iloc[0].get('银行卡号', '')}）\n"
+                                       f"• 否：跳过此条记录，请检查输入数据")
+                                if messagebox.askyesno("重复姓名确认", msg, parent=self.root):
+                                    data.append({
+                                        '姓名': name,
+                                        '工资': salary,
+                                        '身份证号码': emp.iloc[0].get('身份证号码', ''),
+                                        '手机号': emp.iloc[0].get('手机号', ''),
+                                        '银行卡号': emp.iloc[0].get('银行卡号', ''),
+                                        '联行号': emp.iloc[0].get('联行号', ''),
+                                        '开户行': emp.iloc[0].get('开户行', '')
+                                    })
+                                else:
+                                    errors.append(f"{name} 用户取消发放（输入框重复但花名册唯一）")
+                        else:
+                            # 场景3：输入框重复且花名册重复 → 逐个确认哪个工资属于哪个人
+                            processed_count[name] = processed_count.get(name, 0) + 1
                             dialog = DuplicateNameDialog(self.root, name, salary, emp)
                             if dialog.selected_employee is not None:
-                                selected_idx = dialog.selected_employee
-                                selected_emp = emp.iloc[selected_idx]
+                                selected_pos_idx = dialog.selected_employee
+                                selected_emp = emp.iloc[selected_pos_idx]
                                 data.append({
                                     '姓名': name,
                                     '工资': salary,
@@ -2068,17 +2144,7 @@ class SalaryTool:
                                     '开户行': selected_emp.get('开户行', '')
                                 })
                             else:
-                                errors.append(f"'{name}': 未选择员工（重名）")
-                        else:
-                            data.append({
-                                '姓名': name,
-                                '工资': salary,
-                                '身份证号码': emp.iloc[0].get('身份证号码', ''),
-                                '手机号': emp.iloc[0].get('手机号', ''),
-                                '银行卡号': emp.iloc[0].get('银行卡号', ''),
-                                '联行号': emp.iloc[0].get('联行号', ''),
-                                '开户行': emp.iloc[0].get('开户行', '')
-                            })
+                                errors.append(f"{name} 未选择员工（第{processed_count[name]}次出现）")
                     else:
                         errors.append(f"{name} 不在花名册中")
                 except ValueError:
@@ -2410,10 +2476,10 @@ class SalaryTool:
                 )
                 generated_files.extend(agri_files)
 
-            # 添加历史记录
-            files = f"导出报表/{company_name}-{salary_period}-{date_str}/"
+            # 添加历史记录 - 只存储文件夹名称
+            folder_name = f"{company_name}-{salary_period}-{date_str}"
             self.add_history(company_name, salary_period, len(salary_data),
-                           sum(d['工资'] for d in salary_data), files)
+                           sum(d['工资'] for d in salary_data), folder_name)
 
             # 保存默认公司名
             self.save_config()
@@ -4061,15 +4127,62 @@ CSV示例：
         for item in self.history_tree.get_children():
             self.history_tree.delete(item)
 
-        for record in reversed(self.history):
+        for record in self.history:
             self.history_tree.insert('', 'end', values=(
                 record.get('time', ''),
                 record.get('company', ''),
                 record.get('period', ''),
                 record.get('count', ''),
-                f"{record.get('total_amount', 0):.2f}",
-                record.get('output_dir', '')
+                f"{record.get('total_amount', 0):.2f}"
             ))
+
+    def delete_selected_history(self):
+        """删除选中的历史记录"""
+        selected = self.history_tree.selection()
+        if not selected:
+            messagebox.showwarning("提示", "请先选择要删除的记录")
+            return
+
+        if not messagebox.askyesno("确认", "确定要删除选中的历史记录吗？"):
+            return
+
+        # 获取选中行的索引并删除
+        for item_id in selected:
+            item_index = self.history_tree.index(item_id)
+            if 0 <= item_index < len(self.history):
+                # 删除数据库记录（通过时间戳定位）
+                record = self.history[item_index]
+                self.db.delete_history_by_time(record.get('time', ''))
+
+        # 刷新列表
+        self.history = self.db.get_all_history()
+        self.refresh_history_list()
+        messagebox.showinfo("成功", "历史记录已删除")
+
+    def batch_delete_history(self):
+        """批量删除历史记录"""
+        selected = self.history_tree.selection()
+        if not selected:
+            messagebox.showwarning("提示", "请先选择要删除的记录（按住Ctrl或Shift可多选）")
+            return
+
+        count = len(selected)
+        if not messagebox.askyesno("确认", f"确定要删除选中的 {count} 条历史记录吗？"):
+            return
+
+        # 获取选中行的索引并删除
+        deleted_count = 0
+        for item_id in selected:
+            item_index = self.history_tree.index(item_id)
+            if 0 <= item_index < len(self.history):
+                record = self.history[item_index]
+                if self.db.delete_history_by_time(record.get('time', '')):
+                    deleted_count += 1
+
+        # 刷新列表
+        self.history = self.db.get_all_history()
+        self.refresh_history_list()
+        messagebox.showinfo("成功", f"已删除 {deleted_count} 条历史记录")
 
     def clear_history(self):
         """清空历史（使用数据库）"""
@@ -4078,6 +4191,19 @@ CSV示例：
             self.history = []
             self.refresh_history_list()
             messagebox.showinfo("成功", "历史记录已清空")
+
+    def show_history_context_menu(self, event):
+        """显示生成记录的右键菜单"""
+        # 选中右键点击的行
+        item = self.history_tree.identify_row(event.y)
+        if item:
+            self.history_tree.selection_set(item)
+
+            menu = tk.Menu(self.root, tearoff=0)
+            menu.add_command(label="🗑️ 删除选中记录", command=self.delete_selected_history)
+            menu.add_separator()
+            menu.add_command(label="🗑️ 批量删除", command=self.batch_delete_history)
+            menu.post(event.x_root, event.y_root)
 
 
 class CompanyDialog:
