@@ -6,7 +6,7 @@
 
 ### 智能化工资管理解决方案
 
-[![版本](https://img.shields.io/badge/版本-v2.2-blue.svg)](https://github.com)
+[![版本](https://img.shields.io/badge/版本-v2.3-blue.svg)](https://github.com)
 [![Python](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
 [![平台](https://img.shields.io/badge/平台-Windows-lightgrey.svg)](https://microsoft.com)
 [![许可证](https://img.shields.io/badge/许可证-MIT-yellow.svg)](LICENSE)
@@ -84,7 +84,7 @@ python salary_tool_feishu.py
 
 ### 方式一：使用安装包（推荐）
 
-下载 `工资报表生成工具_v2.2_安装包.exe`，双击运行：
+下载 `工资报表生成工具_v2.3_安装包.exe`，双击运行：
 - 自动创建桌面快捷方式
 - 自动创建开始菜单快捷方式
 - 支持卸载功能
@@ -273,7 +273,7 @@ python create_installer.py
 ## 🏗️ 项目结构
 
 ```
-工资工具_v2.2/
+工资工具_v2.3/
 ├── 📄 salary_tool_feishu.py           # 主程序源码
 ├── 📄 create_installer.py             # 打包脚本
 ├── 📄 setup.iss                       # Inno Setup 脚本
@@ -287,7 +287,7 @@ python create_installer.py
 ├── 📁 dist/                           # EXE 输出目录
 │   └── 工资报表生成工具.exe
 ├── 📁 installer/                      # 安装包输出目录
-│   └── 工资报表生成工具_v2.2_安装包.exe
+│   └── 工资报表生成工具_v2.3_安装包.exe
 └── 📁 导出报表/                       # 报表导出目录
     └── 公司名称-发薪月份-日期/
         ├── 个税版式.xlsx
@@ -338,7 +338,7 @@ python create_installer.py
 ## 📦 安装与卸载
 
 ### 安装
-1. 下载 `工资报表生成工具_v2.2_安装包.exe`
+1. 下载 `工资报表生成工具_v2.3_安装包.exe`
 2. 双击运行安装程序
 3. 选择安装目录（默认：Program Files）
 4. 可选创建桌面快捷方式
@@ -357,6 +357,13 @@ python create_installer.py
 ---
 
 ## 📝 更新日志
+
+### v2.3 (2026-03-13)
+- 🏦 **农业银行版式升级**：合并本行/跨行版式为批量转账版式
+- 📝 **批量转账模板**：采用银行标准格式（编号,账号,户名,是否农行,行别,联行号,支行名称,金额,用途）
+- 🔄 **兼容旧版本**：自动将 v2.2 的农行配置迁移到新版本
+- 🔧 所有银行版式统一使用 GBK 编码，避免中文乱码
+- 🔧 修复生成记录显示问题
 
 ### v2.2 (2026-03-12)
 - 🎉 **全新SQLite数据库架构**，数据更安全稳定

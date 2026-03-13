@@ -2,7 +2,7 @@
 ; 使用 Inno Setup 6.x 编译
 
 #define MyAppName "工资报表生成工具"
-#define MyAppVersion "2.2"
+#define MyAppVersion "2.3"
 #define MyAppPublisher "惊鸿科技（济宁）有限公司"
 #define MyAppURL "https://www.jinghongtech.com"
 #define MyAppExeName "工资报表生成工具.exe"

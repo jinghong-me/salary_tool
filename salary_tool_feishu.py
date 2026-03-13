@@ -48,7 +48,7 @@ except:
 
 
 # 版本信息
-VERSION = "v2.2"
+VERSION = "v2.3"
 COPYRIGHT = "2026 惊鸿科技（济宁）有限公司"
 
 
@@ -1185,11 +1185,21 @@ class SalaryTool:
         pass
 
     def get_company_report_types(self, company_name):
-        """获取企业配置的报表类型"""
+        """获取企业配置的报表类型 - 兼容旧版本"""
         if company_name in self.company_config:
-            return self.company_config[company_name].get('report_types', ['tax', 'laishang', 'agricultural_benhang', 'agricultural_kuahang'])
+            report_types = self.company_config[company_name].get('report_types', ['tax', 'laishang', 'jining', 'agricultural_transfer'])
+            # 兼容旧版本：如果包含 agricultural_benhang 或 agricultural_kuahang，转换为 agricultural_transfer
+            if 'agricultural_benhang' in report_types or 'agricultural_kuahang' in report_types:
+                # 移除旧选项
+                report_types = [t for t in report_types if t not in ['agricultural_benhang', 'agricultural_kuahang']]
+                # 添加新选项（如果不存在）
+                if 'agricultural_transfer' not in report_types:
+                    report_types.append('agricultural_transfer')
+                # 自动更新数据库中的配置
+                self.db.save_company_config(company_name, report_types)
+            return report_types
         # 默认生成所有报表
-        return ['tax', 'laishang', 'jining', 'agricultural_benhang', 'agricultural_kuahang']
+        return ['tax', 'laishang', 'jining', 'agricultural_transfer']
 
     def load_roster(self):
         """加载员工花名册（从数据库）"""
@@ -2468,11 +2478,9 @@ class SalaryTool:
             if 'jining' in report_types:
                 generated_files.append(self.generate_jining_version(salary_data, company_name, salary_period, date_str, output_dir))
 
-            if 'agricultural_benhang' in report_types or 'agricultural_kuahang' in report_types:
+            if 'agricultural_transfer' in report_types:
                 agri_files = self.generate_agricultural_version(
-                    salary_data, company_name, salary_period, date_str, output_dir,
-                    generate_benhang='agricultural_benhang' in report_types,
-                    generate_kuahang='agricultural_kuahang' in report_types
+                    salary_data, company_name, salary_period, date_str, output_dir
                 )
                 generated_files.extend(agri_files)
 
@@ -2570,14 +2578,12 @@ class SalaryTool:
         return output_file
 
     def generate_agricultural_version(self, data, company_name, salary_period, date_str, output_dir, generate_benhang=True, generate_kuahang=True):
-        """生成农业银行版
+        """生成农业银行批量转账版
 
-        参数:
-            generate_benhang: 是否生成本行报表
-            generate_kuahang: 是否生成跨行报表
+        批量转账模板格式：
+        编号,收款方账号,收款方户名,是否农行账户,开户银行（行别）,开户行大额行号,开户行支行名称,金额,用途
         """
-        benhang_lines = []
-        kuahang_lines = []
+        transfer_lines = []
         generated_files = []
 
         for d in data:
@@ -2587,27 +2593,32 @@ class SalaryTool:
             interbank = d.get('联行号', '')
             amount = f"{d['工资']:.2f}"
 
-            if '农业银行' in bank_name:
-                if generate_benhang:
-                    benhang_lines.append((card, name, amount))
-            else:
-                if generate_kuahang:
-                    bank_code = self.extract_bank_code(bank_name)
-                    kuahang_lines.append((card, name, bank_code, interbank, bank_name, amount))
+            # 判断是否农行账户
+            is_agricultural = '农业' in bank_name or '农行' in bank_name
+            is_agri_flag = '是' if is_agricultural else '否'
 
-        if benhang_lines:
-            benhang_file = os.path.join(output_dir, f"{company_name}-{salary_period}-农业银行本行-{date_str}.csv")
-            with open(benhang_file, 'w', encoding='utf-8') as f:
-                for i, (card, name, amount) in enumerate(benhang_lines, 1):
-                    f.write(f"{i},{card},{name},{amount},工资\n")
-            generated_files.append(benhang_file)
+            # 提取行别（银行类型）
+            bank_type = self.extract_bank_type(bank_name)
 
-        if kuahang_lines:
-            kuahang_file = os.path.join(output_dir, f"{company_name}-{salary_period}-农业银行跨行-{date_str}.csv")
-            with open(kuahang_file, 'w', encoding='utf-8') as f:
-                for i, (card, name, bank_code, interbank, bank_name, amount) in enumerate(kuahang_lines, 1):
-                    f.write(f"{i},{card},{name},{bank_code},{interbank},{bank_name},{amount},工资\n")
-            generated_files.append(kuahang_file)
+            # 添加到转账列表
+            transfer_lines.append((
+                card,           # 收款方账号
+                name,           # 收款方户名
+                is_agri_flag,   # 是否农行账户
+                bank_type,      # 开户银行（行别）
+                interbank,      # 开户行大额行号
+                bank_name,      # 开户行支行名称
+                amount          # 金额
+            ))
+
+        if transfer_lines:
+            transfer_file = os.path.join(output_dir, f"{company_name}-{salary_period}-农业银行批量转账-{date_str}.txt")
+            # 使用GBK编码，避免中文乱码
+            with open(transfer_file, 'w', encoding='gbk', errors='ignore') as f:
+                for i, (card, name, is_agri, bank_type, interbank, bank_name, amount) in enumerate(transfer_lines, 1):
+                    # 格式：编号,账号,户名,是否农行,行别,联行号,支行名称,金额,用途
+                    f.write(f"{i},{card},{name},{is_agri},{bank_type},{interbank},{bank_name},{amount},工资\n")
+            generated_files.append(transfer_file)
 
         return generated_files
 
@@ -2622,23 +2633,40 @@ class SalaryTool:
         except Exception as e:
             print(f"打开文件夹失败: {e}")
 
-    def extract_bank_code(self, bank_name):
-        """提取银行代码"""
+    def extract_bank_type(self, bank_name):
+        """提取银行行别（用于农行批量转账模板）"""
         bank_mapping = [
-            ('邮政', '中国邮政储蓄银行'), ('建设', '中国建设银行'),
-            ('工商', '中国工商银行'), ('农业', '中国农业银行'),
-            ('中国银行', '中国银行'), ('交通', '交通银行'),
-            ('平安', '平安银行'), ('招商', '招商银行'),
-            ('浦发', '浦发银行'), ('民生', '中国民生银行'),
-            ('光大', '中国光大银行'), ('中信', '中信银行'),
-            ('兴业', '兴业银行'), ('华夏', '华夏银行'),
+            ('邮政', '中国邮政储蓄银行'),
+            ('邮储', '中国邮政储蓄银行'),
+            ('建设', '中国建设银行'),
+            ('建行', '中国建设银行'),
+            ('工商', '中国工商银行'),
+            ('工行', '中国工商银行'),
+            ('农业', '中国农业银行'),
+            ('农行', '中国农业银行'),
+            ('中国银行', '中国银行'),
+            ('中行', '中国银行'),
+            ('交通', '交通银行'),
+            ('交行', '交通银行'),
+            ('平安', '平安银行'),
+            ('招商', '招商银行'),
+            ('招行', '招商银行'),
+            ('浦发', '上海浦东发展银行'),
+            ('民生', '中国民生银行'),
+            ('光大', '中国光大银行'),
+            ('中信', '中信银行'),
+            ('兴业', '兴业银行'),
+            ('华夏', '华夏银行'),
+            ('莱商', '莱商银行'),
+            ('济宁', '济宁银行'),
         ]
 
-        for keyword, code in bank_mapping:
+        for keyword, bank_type in bank_mapping:
             if keyword in bank_name:
-                return code
+                return bank_type
 
-        return bank_name[:10] if bank_name else ''
+        # 如果没有匹配到，返回原始银行名称（截取前20字符）
+        return bank_name[:20] if bank_name else ''
 
     def add_history(self, company, period, count, total, files):
         """添加历史记录（使用数据库）"""
@@ -3195,10 +3223,10 @@ class SalaryTool:
         list_frame.pack(fill=BOTH, expand=YES)
 
         # 创建表格
-        columns = ('企业名称', '个税版式', '莱商银行版式', '济宁银行版式', '农行本行版式', '农行跨行版式')
+        columns = ('企业名称', '个税版式', '莱商银行版式', '济宁银行版式', '农行批量转账')
         self.company_tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=20, bootstyle="primary")
 
-        col_widths = {'企业名称': 350, '个税版式': 100, '莱商银行版式': 100, '济宁银行版式': 100, '农行本行版式': 100, '农行跨行版式': 100}
+        col_widths = {'企业名称': 350, '个税版式': 100, '莱商银行版式': 100, '济宁银行版式': 100, '农行批量转账': 120}
         for col in columns:
             self.company_tree.heading(col, text=col)
             self.company_tree.column(col, width=col_widths.get(col, 120), anchor='center')
@@ -3232,8 +3260,7 @@ class SalaryTool:
                 '✓' if 'tax' in report_types else '✗',
                 '✓' if 'laishang' in report_types else '✗',
                 '✓' if 'jining' in report_types else '✗',
-                '✓' if 'agricultural_benhang' in report_types else '✗',
-                '✓' if 'agricultural_kuahang' in report_types else '✗'
+                '✓' if 'agricultural_transfer' in report_types else '✗'
             ))
 
     def add_company(self):
@@ -3327,10 +3354,8 @@ class SalaryTool:
                         report_types.append('laishang')
                     if row.get('济宁银行版式', '').strip() in ['1', '是', 'TRUE', 'True', 'true', 'YES', 'Yes', 'yes']:
                         report_types.append('jining')
-                    if row.get('农行本行版式', '').strip() in ['1', '是', 'TRUE', 'True', 'true', 'YES', 'Yes', 'yes']:
-                        report_types.append('agricultural_benhang')
-                    if row.get('农行跨行版式', '').strip() in ['1', '是', 'TRUE', 'True', 'true', 'YES', 'Yes', 'yes']:
-                        report_types.append('agricultural_kuahang')
+                    if row.get('农行批量转账', '').strip() in ['1', '是', 'TRUE', 'True', 'true', 'YES', 'Yes', 'yes']:
+                        report_types.append('agricultural_transfer')
 
                     if company_name in self.company_config:
                         updated_count += 1
@@ -3411,8 +3436,7 @@ class SalaryTool:
                         '个税版式': 1 if 'tax' in report_types else 0,
                         '莱商银行版式': 1 if 'laishang' in report_types else 0,
                         '济宁银行版式': 1 if 'jining' in report_types else 0,
-                        '农行本行版式': 1 if 'agricultural_benhang' in report_types else 0,
-                        '农行跨行版式': 1 if 'agricultural_kuahang' in report_types else 0
+                        '农行批量转账': 1 if 'agricultural_transfer' in report_types else 0
                     })
 
                 df = pd.DataFrame(data)
@@ -3460,7 +3484,7 @@ class SalaryTool:
 
 说明：
 • report_types 为数组，包含需要生成的报表类型
-• 可选值：tax(个税)、laishang(莱商银行)、jining(济宁银行)、agricultural_benhang(农行本行)、agricultural_kuahang(农行跨行)
+• 可选值：tax(个税)、laishang(莱商银行)、jining(济宁银行)、agricultural_transfer(农行批量转账)
 
 ═══════════════════════════════════════
 
@@ -4275,8 +4299,7 @@ class CompanyDialog:
             ('tax', '个税版式', '生成包含姓名、身份证号、手机号、工资总额的个税申报表'),
             ('laishang', '莱商银行版式', '生成莱商银行批量转账文件'),
             ('jining', '济宁银行版式', '生成济宁银行批量转账文件'),
-            ('agricultural_benhang', '农行本行版式', '生成农业银行本行转账CSV文件'),
-            ('agricultural_kuahang', '农行跨行版式', '生成农业银行跨行转账CSV文件')
+            ('agricultural_transfer', '农行批量转账', '生成农业银行批量转账TXT文件')
         ]
 
         for key, label, desc in report_options:

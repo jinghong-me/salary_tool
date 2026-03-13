@@ -125,7 +125,7 @@ def build_installer():
 def main():
     """主函数"""
     print("=" * 50)
-    print("   工资报表生成工具 v2.2 - 打包脚本")
+    print("   工资报表生成工具 v2.3 - 打包脚本")
     print("=" * 50)
     print()
     
@@ -151,8 +151,8 @@ def main():
     print("输出文件：")
     if os.path.exists(r'dist\工资报表生成工具.exe'):
         print("  - EXE 程序：dist\\工资报表生成工具.exe")
-    if os.path.exists(r'installer\工资报表生成工具_v2.2_安装包.exe'):
-        print("  - 安装包：installer\\工资报表生成工具_v2.2_安装包.exe")
+    if os.path.exists(r'installer\工资报表生成工具_v2.3_安装包.exe'):
+        print("  - 安装包：installer\\工资报表生成工具_v2.3_安装包.exe")
     print()
     print("安装包功能：")
     print("  - 自动创建桌面快捷方式")
